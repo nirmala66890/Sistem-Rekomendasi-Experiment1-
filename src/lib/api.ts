@@ -4,8 +4,8 @@
 
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
-// Endpoint Backend Hugging Face Space Experiment 2 milikmu
-const FASTAPI_URL = "https://jikojeromi77-anime-be.hf.space"; 
+// SINKRONISASI: Mengarah langsung ke Space Hugging Face Experiment 2 yang aktif
+const FASTAPI_URL = "https://jikojeromi77-be-experiment2.hf.space"; 
 
 export interface Anime {
   mal_id: number;
@@ -103,6 +103,79 @@ export async function fetchTopAnime(): Promise<Anime[]> {
   } catch (error) {
     console.error('API Error:', error);
     return [];
+  }
+}
+
+export async function searchAnime(query: string): Promise<Anime[]> {
+  try {
+    const res = await fetch(`${BASE_URL}/anime?q=${query}&limit=12`);
+    if (!res.ok) throw new Error('Failed to fetch search result');
+    const data = await res.json();
+    return data.data;
+  } catch (error) {
+    console.error('API Error:', error);
+    return [];
+  }
+}
+
+export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
+  try {
+    const response = await fetch(`${FASTAPI_URL}/recommend?title=${encodeURIComponent(title)}&top_n=20`, {
+      method: "GET",
+      headers: { "Accept": "application/json" }
+    });
+
+    if (!response.ok) throw new Error("Gagal mengambil data dari server rekomendasi.");
+
+    const resultData = await response.json();
+    const recommendationsFromModel = resultData.data || [];
+
+    if (recommendationsFromModel.length === 0) {
+      return await fetchTopAnime();
+    }
+
+    return mapBackendToFrontendModel(recommendationsFromModel);
+
+  } catch (error) {
+    console.error("Error pada Skenario A (By Title):", error);
+    return await fetchTopAnime();
+  }
+}
+
+export async function fetchRecommendationsByGenreTheme(genres: string[], themes: string[] = []): Promise<Anime[]> {
+  try {
+    const response = await fetch(`${FASTAPI_URL}/filter`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      // SINKRONISASI: Menyertakan 'tags' kosong agar lolos validasi skema Pydantic Backend
+      body: JSON.stringify({ 
+        genres: genres,
+        themes: themes,
+        tags: [],
+        top_n: 20
+      })
+    });
+
+    if (!response.ok) throw new Error("Gagal mengambil data filter dari server rekomendasi.");
+
+    const resultData = await response.json();
+    const recommendationsFromModel = resultData.data || [];
+
+    if (recommendationsFromModel.length === 0) {
+      console.warn("Model mengembalikan hasil kosong. Mengaktifkan Fallback Jikan Top Anime.");
+      return await fetchTopAnime();
+    }
+
+    return mapBackendToFrontendModel(recommendationsFromModel);
+
+  } catch (error) {
+    console.error("Error pada Skenario B (By Genre):", error);
+    return await fetchTopAnime();
+  }
+}
   }
 }
 
