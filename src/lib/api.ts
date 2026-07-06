@@ -1,9 +1,11 @@
 // ==============================================================================
-// FULL CODE REVISI SINKRON: SRC/LIB/API.TS (COMPATIBILITY MODE FOR NETLIFY BUILD)
+// FULL CODE SINKRON: SRC/LIB/API.TS (SISTEM 1 - FIXED GENRE FILTER MATCHING)
 // ==============================================================================
 
 export const BASE_URL = 'https://api.jikan.moe/v4';
-const FASTAPI_URL = "https://jikojeromi77-be-experiment2.hf.space";
+
+// PERBAIKAN 1: Pastikan URL ini mengarah ke Hugging Face Space EKSPERIMEN 1 kamu
+const FASTAPI_URL = "https://jikojeromi77-anime-be.hf.space"; 
 
 export interface Anime {
   mal_id: number;
@@ -31,14 +33,27 @@ export interface Anime {
 function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
   return recommendations.map((item) => {
     let formattedGenres: { name: string }[] = [];
+    
+    // PERBAIKAN 2: Proteksi Pintar untuk Format Genre Array vs String
     if (item.genres) {
-      try {
-        const cleanGenres = item.genres.replace(/[\[\]']/g, '').split(',');
-        formattedGenres = cleanGenres
-          .map((g: string) => ({ name: g.trim() }))
-          .filter((g: any) => g.name !== "");
-      } catch (e) {
-        formattedGenres = [];
+      if (Array.isArray(item.genres)) {
+        // Jika backend sudah mengirim dalam bentuk Array Objek (Sesuai update main.py Eksperimen 1 terbaru)
+        formattedGenres = item.genres.map((g: any) => {
+          if (typeof g === 'object' && g !== null && g.name) {
+            return { name: String(g.name).strip ? String(g.name).trim() : String(g.name) };
+          }
+          return { name: String(g).trim() };
+        }).filter((g) => g.name !== "");
+      } else if (typeof item.genres === 'string') {
+        // Fallback jika database backend masih melempar teks string mentah lama
+        try {
+          const cleanGenres = item.genres.replace(/[\[\]']/g, '').split(',');
+          formattedGenres = cleanGenres
+            .map((g: string) => ({ name: g.trim() }))
+            .filter((g: any) => g.name !== "");
+        } catch (e) {
+          formattedGenres = [];
+        }
       }
     }
 
@@ -160,3 +175,4 @@ function getMockAnimeList(): Anime[] {
     }
   ];
 }
+
