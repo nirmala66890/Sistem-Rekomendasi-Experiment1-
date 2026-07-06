@@ -94,7 +94,7 @@ export async function fetchJikanDetail(item: any): Promise<any> {
 
 export async function fetchTopAnime(): Promise<Anime[]> {
   try {
-    const res = await fetch(`${BASE_URL}/top/anime?limit=15`);
+    const res = await fetch(`${BASE_URL}/top/anime?limit=20`); // Diubah menjadi limit=20 agar sesuai kebutuhan top 20 kamu
     if (!res.ok) throw new Error('Failed to fetch top anime');
     const data = await res.json();
     return data.data;
@@ -128,11 +128,15 @@ export async function fetchRecommendationsByTitle(title: string): Promise<Anime[
     const resultData = await response.json();
     const recommendationsFromModel = resultData.recommendations || [];
 
+    if (recommendationsFromModel.length === 0) {
+      return await fetchTopAnime();
+    }
+
     return mapBackendToFrontendModel(recommendationsFromModel);
 
   } catch (error) {
     console.error("Error pada Skenario A (By Title):", error);
-    return getMockAnimeList();
+    return await fetchTopAnime();
   }
 }
 
@@ -154,11 +158,18 @@ export async function fetchRecommendationsByGenreTheme(genres: string[], themes:
     const resultData = await response.json();
     const recommendationsFromModel = resultData.recommendations || [];
 
+    // PERBAIKAN EMERGENSI: Jika database model mengembalikan array kosong (0 hasil),
+    // kita panggil Jikan Top Anime agar UI menampilkan data anime nyata, bukan Hunter x Hunter tiruan.
+    if (recommendationsFromModel.length === 0) {
+      console.warn("Model mengembalikan 0 hasil. Mengaktifkan Fallback Jikan Top Anime.");
+      return await fetchTopAnime();
+    }
+
     return mapBackendToFrontendModel(recommendationsFromModel);
 
   } catch (error) {
     console.error("Error pada Skenario B (By Genre):", error);
-    return getMockAnimeList();
+    return await fetchTopAnime();
   }
 }
 
@@ -175,4 +186,3 @@ function getMockAnimeList(): Anime[] {
     }
   ];
 }
-
