@@ -1,5 +1,5 @@
 // ==============================================================================
-// FULL CODE SINKRON: SRC/APP/HOME.TSX (MEMUTUSKAN KATALOG JIKAN & FOKUS KE MODEL)
+// FULL CODE SINKRON: SRC/APP/HOME.TSX (FIXED & PROTECTED FILTER ARRAY)
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -62,9 +62,13 @@ export const Home = () => {
     }
   };
 
-  // Skenario 2: Menangani kombinasi filter Genre & Tema
-  const handleGenreThemeFilter = async (genres: string[], themes: string[]) => {
-    if (genres.length === 0 && themes.length === 0) {
+  // Skenario 2: Menangani kombinasi filter Genre & Tema (Updated dengan Proteksi Parameter)
+  const handleGenreThemeFilter = async (genres: string[], themes: string[] = []) => {
+    // Memastikan parameter yang diterima benar-benar berbentuk array string yang valid dan bersih
+    const safeGenres = Array.isArray(genres) ? genres.filter(g => typeof g === 'string' && g.trim() !== '') : [];
+    const safeThemes = Array.isArray(themes) ? themes.filter(t => typeof t === 'string' && t.trim() !== '') : [];
+
+    if (safeGenres.length === 0 && safeThemes.length === 0) {
       setIsSearchingActive(false);
       setRecommendations(topAnime.slice(0, 10));
       setRecommendationTitle("Best Anime Movies");
@@ -74,7 +78,8 @@ export const Home = () => {
     setIsSearching(true);
     setIsSearchingActive(true);
     try {
-      const modelRecommendations = await fetchRecommendationsByGenreTheme(genres, themes);
+      // Mengirimkan array yang sudah divalidasi aman ke fungsi API
+      const modelRecommendations = await fetchRecommendationsByGenreTheme(safeGenres, safeThemes);
       setRecommendations(modelRecommendations);
       setRecommendationTitle(`Top Results Matching Your Selected Filters`);
     } catch (error) {
