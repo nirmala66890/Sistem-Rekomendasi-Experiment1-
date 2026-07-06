@@ -1,5 +1,5 @@
 // ==============================================================================
-// FULL CODE SINKRON: SRC/APP/HOME.TSX (FIXED & PROTECTED FILTER ARRAY)
+// FULL CODE SINKRON: SRC/APP/HOME.TSX (SISTEM 2 - CLEAN & PRODUCTION READY)
 // ==============================================================================
 
 import React, { useState, useEffect } from 'react';
@@ -24,13 +24,15 @@ export const Home = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [recommendationTitle, setRecommendationTitle] = useState<string>("Best Anime Movies");
 
+  // memuat data ranking teratas saat pertama kali aplikasi dibuka
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
       try {
         const top = await fetchTopAnime();
         setTopAnime(top);
-        setRecommendations(top.slice(0, 10));
+        // Mengisi rekomendasi awal dengan top 20 default
+        setRecommendations(top);
       } catch (error) {
         console.error("Gagal memuat data beranda:", error);
       } finally {
@@ -40,10 +42,13 @@ export const Home = () => {
     loadInitialData();
   }, []);
 
-  // Skenario 1: Menangani input pencarian berdasarkan Judul
+  /**
+   * SKENARIO A: Pencarian Rekomendasi Berdasarkan Judul Acuan (Hybrid Model)
+   */
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
       setIsSearchingActive(false);
+      setRecommendations(topAnime);
       setRecommendationTitle("Best Anime Movies");
       return;
     }
@@ -51,26 +56,30 @@ export const Home = () => {
     setIsSearching(true);
     setIsSearchingActive(true);
     try {
-      // Langsung mengambil data hasil pembungkusan gambar ter-update
+      // Menembak endpoint /recommend lewat helper api.ts
       const modelRecommendations = await fetchRecommendationsByTitle(query);
       setRecommendations(modelRecommendations);
       setRecommendationTitle(`Recommended Based on "${query}"`);
     } catch (error) {
       console.error("Error model search:", error);
+      setRecommendations([]);
     } finally {
       setIsSearching(false);
     }
   };
 
-  // Skenario 2: Menangani kombinasi filter Genre & Tema (Updated dengan Proteksi Parameter)
+  /**
+   * SKENARIO B: Penapisan Multi-Tag Bersamaan (Genre & Tema)
+   */
   const handleGenreThemeFilter = async (genres: string[], themes: string[] = []) => {
-    // Memastikan parameter yang diterima benar-benar berbentuk array string yang valid dan bersih
+    // Kebal Error: Memastikan data parameter murni berbentuk array teks bersih
     const safeGenres = Array.isArray(genres) ? genres.filter(g => typeof g === 'string' && g.trim() !== '') : [];
     const safeThemes = Array.isArray(themes) ? themes.filter(t => typeof t === 'string' && t.trim() !== '') : [];
 
+    // Jika user mengosongkan semua pilihan centang, kembalikan tampilan ke default semula
     if (safeGenres.length === 0 && safeThemes.length === 0) {
       setIsSearchingActive(false);
-      setRecommendations(topAnime.slice(0, 10));
+      setRecommendations(topAnime);
       setRecommendationTitle("Best Anime Movies");
       return;
     }
@@ -78,12 +87,13 @@ export const Home = () => {
     setIsSearching(true);
     setIsSearchingActive(true);
     try {
-      // Mengirimkan array yang sudah divalidasi aman ke fungsi API
+      // Mengirimkan array bersih ke endpoint /filter POST via helper api.ts
       const modelRecommendations = await fetchRecommendationsByGenreTheme(safeGenres, safeThemes);
       setRecommendations(modelRecommendations);
       setRecommendationTitle(`Top Results Matching Your Selected Filters`);
     } catch (error) {
       console.error("Error model filter:", error);
+      setRecommendations([]);
     } finally {
       setIsSearching(false);
     }
@@ -94,6 +104,7 @@ export const Home = () => {
       <Navbar />
       
       <main className="pb-24">
+        {/* Komponen Input utama penangkap aksi user */}
         <HeroSearch onSearch={handleSearch} onFilterChange={handleGenreThemeFilter} />
 
         {isSearching ? (
@@ -101,7 +112,7 @@ export const Home = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
           </div>
         ) : isSearchingActive ? (
-          /* MERENDER SATU ROW SAJA: HASIL KELUARAN DARI BACKEND FASTAPI KAMU */
+          /* Merender baris tunggal hasil keluaran sistem rekomendasi cerdas kita */
           <AnimeGrid 
             title={recommendationTitle} 
             items={recommendations} 
@@ -113,6 +124,7 @@ export const Home = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
           </div>
         ) : (
+          /* Tampilan Default awal saat pertama kali web diakses */
           <>
             <AnimeGrid 
               title="Trending Now" 
@@ -130,6 +142,7 @@ export const Home = () => {
         )}
       </main>
 
+      {/* Komponen pop-up detail ketika salah satu kartu anime diklik */}
       <AnimeModal anime={selectedAnime} onClose={() => setSelectedAnime(null)} />
     </div>
   );
