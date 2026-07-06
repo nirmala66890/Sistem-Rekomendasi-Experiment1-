@@ -1,10 +1,10 @@
 // ==============================================================================
-// FULL CODE SINKRON: SRC/LIB/API.TS (SISTEM 1 - FIXED GENRE FILTER MATCHING)
+// FULL CODE SINKRON: SRC/LIB/API.TS (SISTEM 2 - CLEAN DEPLOYMENT)
 // ==============================================================================
 
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
-// PERBAIKAN 1: Alamat URL mengarah ke Hugging Face Space EKSPERIMEN 1 kamu
+// Endpoint Backend Hugging Face Space Experiment 2 milikmu
 const FASTAPI_URL = "https://jikojeromi77-anime-be.hf.space"; 
 
 export interface Anime {
@@ -28,16 +28,17 @@ export interface Anime {
 }
 
 /**
- * HELPER UTAMA: Memproses konversi format data dari Backend FastAPI langsung ke standar UI React.
+ * HELPER UTAMA: Memproses data langsung dari model biner bff (.joblib) ke model React UI.
  */
 function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
+  if (!Array.isArray(recommendations)) return [];
+  
   return recommendations.map((item) => {
+    // Parsing genre secara aman, baik format list object maupun string mentah
     let formattedGenres: { name: string }[] = [];
     
-    // PERBAIKAN 2: Proteksi Pintar untuk Format Genre Array vs String (Bebas dari Error .strip Python)
     if (item.genres) {
       if (Array.isArray(item.genres)) {
-        // Jika backend sudah mengirim dalam bentuk Array Of Objects dari main.py terbaru
         formattedGenres = item.genres.map((g: any) => {
           if (typeof g === 'object' && g !== null && g.name) {
             return { name: String(g.name).trim() };
@@ -45,10 +46,10 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
           return { name: String(g).trim() };
         }).filter((g) => g.name !== "");
       } else if (typeof item.genres === 'string') {
-        // Fallback jika database backend melempar teks string mentah lama
         try {
-          const cleanGenres = item.genres.replace(/[\[\]']/g, '').split(',');
-          formattedGenres = cleanGenres
+          formattedGenres = item.genres
+            .replace(/[\[\]']/g, '')
+            .split(',')
             .map((g: string) => ({ name: g.trim() }))
             .filter((g: any) => g.name !== "");
         } catch (e) {
@@ -57,11 +58,12 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
       }
     }
 
+    // Gambar langsung dibaca dari kolom database model tanpa pencarian gabungan lagi
     const directImageUrl = item.image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
 
     return {
-      mal_id: item.mal_id,
-      title: item.title,
+      mal_id: Number(item.mal_id) || 0,
+      title: item.title || "Unknown Title",
       score: item.score || 0,
       synopsis: item.synopsis || "No synopsis available.",
       images: {
@@ -81,7 +83,7 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
 }
 
 // ==============================================================================
-// KODE PENYELAMAT: Fungsi tiruan agar komponen React lama tidak eror saat di-build
+// KODE PENYELAMAT COMPATIBILITY
 // ==============================================================================
 export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anime[]> {
   return mapBackendToFrontendModel(recommendations);
@@ -94,13 +96,13 @@ export async function fetchJikanDetail(item: any): Promise<any> {
 
 export async function fetchTopAnime(): Promise<Anime[]> {
   try {
-    const res = await fetch(`${BASE_URL}/top/anime?limit=20`); // Diubah menjadi limit=20 agar sesuai kebutuhan top 20 kamu
+    const res = await fetch(`${BASE_URL}/top/anime?limit=20`);
     if (!res.ok) throw new Error('Failed to fetch top anime');
     const data = await res.json();
     return data.data;
   } catch (error) {
     console.error('API Error:', error);
-    return getMockAnimeList();
+    return [];
   }
 }
 
@@ -118,7 +120,8 @@ export async function searchAnime(query: string): Promise<Anime[]> {
 
 export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
   try {
-    const response = await fetch(`${FASTAPI_URL}/recommend/by-title?title=${encodeURIComponent(title)}&top_n=20`, {
+    // PENYESUAIAN ENDPOINT BARU: /recommend
+    const response = await fetch(`${FASTAPI_URL}/recommend?title=${encodeURIComponent(title)}&top_n=20`, {
       method: "GET",
       headers: { "Accept": "application/json" }
     });
@@ -126,7 +129,9 @@ export async function fetchRecommendationsByTitle(title: string): Promise<Anime[
     if (!response.ok) throw new Error("Gagal mengambil data dari server rekomendasi.");
 
     const resultData = await response.json();
-    const recommendationsFromModel = resultData.recommendations || [];
+    
+    // PENYESUAIAN PAYLOAD BARU: Membaca dari resultData.data
+    const recommendationsFromModel = resultData.data || [];
 
     if (recommendationsFromModel.length === 0) {
       return await fetchTopAnime();
@@ -142,26 +147,29 @@ export async function fetchRecommendationsByTitle(title: string): Promise<Anime[
 
 export async function fetchRecommendationsByGenreTheme(genres: string[], themes: string[] = []): Promise<Anime[]> {
   try {
-    const combinedGenres = [...genres, ...themes];
-
-    const response = await fetch(`${FASTAPI_URL}/recommend/by-genre?top_n=20`, {
+    // PENYESUAIAN ENDPOINT BARU: /filter dengan method POST
+    const response = await fetch(`${FASTAPI_URL}/filter`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Accept": "application/json"
       },
-      body: JSON.stringify({ genres: combinedGenres })
+      body: JSON.stringify({ 
+        genres: genres,
+        themes: themes,
+        top_n: 20
+      })
     });
 
     if (!response.ok) throw new Error("Gagal mengambil data filter dari server rekomendasi.");
 
     const resultData = await response.json();
-    const recommendationsFromModel = resultData.recommendations || [];
+    
+    // PENYESUAIAN PAYLOAD BARU: Membaca dari resultData.data
+    const recommendationsFromModel = resultData.data || [];
 
-    // PERBAIKAN EMERGENSI: Jika database model mengembalikan array kosong (0 hasil),
-    // kita panggil Jikan Top Anime agar UI menampilkan data anime nyata, bukan Hunter x Hunter tiruan.
     if (recommendationsFromModel.length === 0) {
-      console.warn("Model mengembalikan 0 hasil. Mengaktifkan Fallback Jikan Top Anime.");
+      console.warn("Model mengembalikan hasil kosong. Mengaktifkan Fallback Jikan Top Anime.");
       return await fetchTopAnime();
     }
 
@@ -171,18 +179,4 @@ export async function fetchRecommendationsByGenreTheme(genres: string[], themes:
     console.error("Error pada Skenario B (By Genre):", error);
     return await fetchTopAnime();
   }
-}
-
-function getMockAnimeList(): Anime[] {
-  return [
-    {
-      mal_id: 11061,
-      title: "Hunter x Hunter (2011)",
-      images: { jpg: { image_url: "https://cdn.myanimelist.net/images/anime/1337/138687l.jpg", large_image_url: "https://cdn.myanimelist.net/images/anime/1337/138687l.jpg" } },
-      synopsis: "An elegant adaptation of the iconic shounen manga following Gon and Killua.",
-      score: 9.04,
-      genres: [{ name: "Action" }, { name: "Adventure" }, { name: "Fantasy" }],
-      themes: []
-    }
-  ];
 }
