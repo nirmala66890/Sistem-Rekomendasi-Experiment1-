@@ -4,7 +4,7 @@
 
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
-// PERBAIKAN 1: Pastikan URL ini mengarah ke Hugging Face Space EKSPERIMEN 1 kamu
+// PERBAIKAN 1: Alamat URL mengarah ke Hugging Face Space EKSPERIMEN 1 kamu
 const FASTAPI_URL = "https://jikojeromi77-anime-be.hf.space"; 
 
 export interface Anime {
@@ -34,18 +34,18 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
   return recommendations.map((item) => {
     let formattedGenres: { name: string }[] = [];
     
-    // PERBAIKAN 2: Proteksi Pintar untuk Format Genre Array vs String
+    // PERBAIKAN 2: Proteksi Pintar untuk Format Genre Array vs String (Bebas dari Error .strip Python)
     if (item.genres) {
       if (Array.isArray(item.genres)) {
-        // Jika backend sudah mengirim dalam bentuk Array Objek (Sesuai update main.py Eksperimen 1 terbaru)
+        // Jika backend sudah mengirim dalam bentuk Array Of Objects dari main.py terbaru
         formattedGenres = item.genres.map((g: any) => {
           if (typeof g === 'object' && g !== null && g.name) {
-            return { name: String(g.name).strip ? String(g.name).trim() : String(g.name) };
+            return { name: String(g.name).trim() };
           }
           return { name: String(g).trim() };
         }).filter((g) => g.name !== "");
       } else if (typeof item.genres === 'string') {
-        // Fallback jika database backend masih melempar teks string mentah lama
+        // Fallback jika database backend melempar teks string mentah lama
         try {
           const cleanGenres = item.genres.replace(/[\[\]']/g, '').split(',');
           formattedGenres = cleanGenres
@@ -62,7 +62,7 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
     return {
       mal_id: item.mal_id,
       title: item.title,
-      score: item.score,
+      score: item.score || 0,
       synopsis: item.synopsis || "No synopsis available.",
       images: {
         jpg: {
