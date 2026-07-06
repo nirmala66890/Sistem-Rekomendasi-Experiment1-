@@ -1,5 +1,5 @@
 // ==============================================================================
-// FULL CODE REVISI: SRC/APP/COMPONENTS/HEROSEARCH.TSX (PERBAIKAN DROP-DOWN THEMES)
+// FULL CODE REVISI SINKRON: SRC/APP/COMPONENTS/HEROSEARCH.TSX 
 // ==============================================================================
 
 import React, { useState } from 'react';
@@ -44,7 +44,8 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, onFilterChange
   };
 
   const handleApply = () => {
-    onFilterChange(selectedGenres, selectedThemes);
+    // Mengirim salinan array secara aman ke komponen Home.tsx
+    onFilterChange([...selectedGenres], [...selectedThemes]);
   };
 
   const handleReset = () => {
@@ -79,11 +80,11 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, onFilterChange
             <button 
               type="button"
               onClick={() => setShowFilters(!showFilters)}
-              className="hidden sm:flex items-center gap-2 px-6 h-12 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/5 mr-2"
+              className="flex items-center gap-2 px-4 sm:px-6 h-12 rounded-xl bg-white/5 hover:bg-white/10 text-white font-medium border border-white/5 mr-2 transition-colors"
             >
-              <SlidersHorizontal size={18} /> Filters
+              <SlidersHorizontal size={18} /> <span className="hidden xs:inline">Filters</span>
             </button>
-            <button type="submit" className="h-12 px-8 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold">
+            <button type="submit" className="h-12 px-6 sm:px-8 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity">
               Search
             </button>
           </div>
@@ -97,14 +98,15 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, onFilterChange
               exit={{ opacity: 0, y: -10 }}
               className="bg-[#111] border border-white/10 rounded-2xl p-6 shadow-2xl space-y-6 relative z-50"
             >
+              {/* SEKSI GENRE */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-400 uppercase">Select Genres</h3>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Select Genres</h3>
                 <div className="flex flex-wrap gap-2">
                   {DATASET_GENRES.map(genre => (
                     <button 
                       key={genre} type="button" onClick={() => toggleGenre(genre)}
-                      className={`px-3 py-1.5 rounded-xl text-sm border transition-all ${
-                        selectedGenres.includes(genre) ? 'bg-purple-600 text-white border-transparent' : 'bg-white/5 text-gray-400 border-white/5'
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-all pointer-events-auto cursor-pointer ${
+                        selectedGenres.includes(genre) ? 'bg-purple-600 text-white border-transparent shadow-lg shadow-purple-600/20' : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
                       }`}
                     >
                       {genre}
@@ -113,15 +115,15 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, onFilterChange
                 </div>
               </div>
 
+              {/* SEKSI TEMA */}
               <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-400 uppercase">Select Themes</h3>
-                {/* Penambahan pointer-events-auto dan relative z-50 agar baris tombol tema bisa merespons klik mouse */}
-                <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto pr-2 relative z-50 pointer-events-auto custom-scrollbar">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Select Themes</h3>
+                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 relative z-50 pointer-events-auto custom-scrollbar">
                   {DATASET_THEMES.map(theme => (
                     <button 
                       key={theme} type="button" onClick={() => toggleTheme(theme)}
-                      className={`px-3 py-1.5 rounded-xl text-sm border transition-all ${
-                        selectedThemes.includes(theme) ? 'bg-indigo-600 text-white border-transparent' : 'bg-white/5 text-gray-400 border-white/5'
+                      className={`px-3 py-1.5 rounded-xl text-sm border transition-all pointer-events-auto cursor-pointer ${
+                        selectedThemes.includes(theme) ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-600/20' : 'bg-white/5 text-gray-400 border-white/5 hover:bg-white/10'
                       }`}
                     >
                       {theme}
@@ -130,9 +132,14 @@ export const HeroSearch: React.FC<HeroSearchProps> = ({ onSearch, onFilterChange
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-white/5">
-                <button type="button" onClick={handleReset} className="px-5 py-2.5 rounded-xl text-sm bg-white/5 text-gray-300">Reset</button>
-                <button type="button" onClick={handleApply} className="px-5 py-2.5 rounded-xl text-sm bg-purple-600 text-white font-semibold">Apply Model Filters</button>
+              {/* ACTION BUTTONS */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-white/5 relative z-50 pointer-events-auto">
+                <button type="button" onClick={handleReset} className="px-5 py-2.5 rounded-xl text-sm bg-white/5 hover:bg-white/10 text-gray-300 font-medium transition-colors cursor-pointer">
+                  Reset
+                </button>
+                <button type="button" onClick={handleApply} className="px-5 py-2.5 rounded-xl text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold transition-colors shadow-lg shadow-purple-600/20 cursor-pointer">
+                  Apply Model Filters
+                </button>
               </div>
             </motion.div>
           )}
