@@ -97,12 +97,31 @@ export async function fetchRecommendationsFromBackend(userId: number): Promise<A
     }
     
     const data = await res.json();
-    // Jika backend mengembalikan object { data: [...] }, gunakan data.data
-    // Jika backend mengembalikan langsung array [...], gunakan data
     return mapBackendToFrontendModel(data.data || data); 
     
   } catch (error) {
     console.error('Error saat mengambil rekomendasi dari Railway:', error);
+    return [];
+  }
+}
+
+/**
+ * Fungsi untuk mengambil rekomendasi berdasarkan Filter Genre & Theme
+ */
+export async function fetchRecommendationsByGenreTheme(genres: string, themes: string): Promise<Anime[]> {
+  try {
+    const url = `${FASTAPI_URL}/filter?genres=${encodeURIComponent(genres)}&themes=${encodeURIComponent(themes)}`;
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      throw new Error(`Gagal mengambil data filter: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    return mapBackendToFrontendModel(data.data || data); 
+    
+  } catch (error) {
+    console.error('Error saat melakukan filter:', error);
     return [];
   }
 }
@@ -129,4 +148,3 @@ export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anim
 export async function fetchJikanDetail(item: any): Promise<any> {
   return item;
 }
-
