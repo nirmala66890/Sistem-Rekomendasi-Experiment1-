@@ -28,7 +28,7 @@ export interface Anime {
 }
 
 /**
- * HELPER UTAMA: Memproses data langsung dari model biner bff (.joblib) ke model React UI.
+ * HELPER UTAMA: Memproses data langsung dari model biner bff (.joblib) atau Jikan API ke model React UI.
  */
 function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
   if (!Array.isArray(recommendations)) return [];
@@ -57,7 +57,11 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
       }
     }
 
-    const directImageUrl = item.image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
+    // PENYEBAB LOADING FIX: Menangani format data gambar fallback dari Jikan API maupun Backend Railway
+    const directImageUrl = item.image_url || 
+                           item.images?.jpg?.image_url || 
+                           item.images?.jpg?.large_image_url || 
+                           "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
 
     return {
       mal_id: Number(item.mal_id) || 0,
@@ -169,3 +173,4 @@ export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anim
 export async function fetchJikanDetail(item: any): Promise<any> {
   return item;
 }
+
