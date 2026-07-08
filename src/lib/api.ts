@@ -149,16 +149,40 @@ export async function fetchRecommendationsByTitle(title: string): Promise<Anime[
 
 /**
  * Fungsi untuk mengambil Top Anime dari Jikan API
- * KEMBALI KE ASLI: Data Jikan murni langsung dilempar ke UI tanpa dirusak mapper backend!
+ * PERBAIKAN: Menambahkan mapping aman agar tidak ada data undefined yang membuat UI crash
  */
 export async function fetchTopAnime(): Promise<Anime[]> {
   try {
     const res = await fetch(`${BASE_URL}/top/anime?limit=20`);
-    if (!res.ok) throw new Error('Failed to fetch top anime');
-    const data = await res.json();
-    return data.data; // Mengembalikan data asli Jikan API yang valid struktur gambarnya
+    if (!res.ok) {
+      throw new Error(`Failed to fetch top anime: ${res.status}`);
+    }
+    
+    const json = await res.json();
+    
+    // Pastikan json.data ada dan merupakan array
+    if (!json.data || !Array.isArray(json.data)) {
+      return [];
+    }
+
+    // Pemetaan data mentah dari Jikan API agar aman dikonsumsi frontend
+    return json.data.map((item: any) => ({
+      mal_id: item.mal_id || 0,
+      title: item.title || "Unknown Title",
+      images: {
+        jpg: {
+          image_url: item.images?.jpg?.image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400",
+          large_image_url: item.images?.jpg?.large_image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400"
+        }
+      },
+      synopsis: item.synopsis || "No synopsis available.",
+      score: item.score || 0,
+      genres: Array.isArray(item.genres) ? item.genres.map((g: any) => ({ name: g.name })) : [],
+      themes: Array.isArray(item.themes) ? item.themes.map((t: any) => ({ name: t.name })) : [],
+    })) as Anime[];
+    
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API Error in fetchTopAnime:', error);
     return [];
   }
 }
@@ -170,4 +194,3 @@ export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anim
 export async function fetchJikanDetail(item: any): Promise<any> {
   return item;
 }
-
