@@ -28,7 +28,7 @@ export interface Anime {
 }
 
 /**
- * HELPER UTAMA: Memproses data langsung dari model biner bff (.joblib) atau Jikan API ke model React UI.
+ * HELPER KHUSUS BACKEND: Hanya memproses data yang keluar dari API Railway kamu saja!
  */
 function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
   if (!Array.isArray(recommendations)) return [];
@@ -57,11 +57,8 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
       }
     }
 
-    // PENYEBAB LOADING FIX: Menangani format data gambar fallback dari Jikan API maupun Backend Railway
-    const directImageUrl = item.image_url || 
-                           item.images?.jpg?.image_url || 
-                           item.images?.jpg?.large_image_url || 
-                           "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
+    // Mengambil image_url langsung dari response backend Railway kamu
+    const directImageUrl = item.image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
 
     return {
       mal_id: Number(item.mal_id) || 0,
@@ -131,7 +128,6 @@ export async function fetchRecommendationsByGenreTheme(genres: string, themes: s
 
 /**
  * Fungsi untuk mencari anime berdasarkan Judul (Title)
- * SINKRONISASI TOTAL: Mengarah ke /recommend?title= sesuai dengan endpoint asli backend kamu
  */
 export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
   try {
@@ -153,13 +149,14 @@ export async function fetchRecommendationsByTitle(title: string): Promise<Anime[
 
 /**
  * Fungsi untuk mengambil Top Anime dari Jikan API
+ * KEMBALI KE ASLI: Data Jikan murni langsung dilempar ke UI tanpa dirusak mapper backend!
  */
 export async function fetchTopAnime(): Promise<Anime[]> {
   try {
     const res = await fetch(`${BASE_URL}/top/anime?limit=20`);
     if (!res.ok) throw new Error('Failed to fetch top anime');
     const data = await res.json();
-    return data.data;
+    return data.data; // Mengembalikan data asli Jikan API yang valid struktur gambarnya
   } catch (error) {
     console.error('API Error:', error);
     return [];
