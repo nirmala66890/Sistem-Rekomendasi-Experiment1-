@@ -5,6 +5,7 @@
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
 // SINKRONISASI: Mengarah ke Railway Production
+// Pastikan URL ini sesuai dengan URL yang tertera di Dashboard Railway kamu
 const FASTAPI_URL = "https://anime-be1-production.up.railway.app"; 
 
 export interface Anime {
@@ -34,7 +35,6 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
   if (!Array.isArray(recommendations)) return [];
   
   return recommendations.map((item) => {
-    // Parsing genre secara aman, baik format list object maupun string mentah
     let formattedGenres: { name: string }[] = [];
     
     if (item.genres) {
@@ -58,7 +58,6 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
       }
     }
 
-    // Gambar langsung dibaca dari kolom database model tanpa pencarian gabungan lagi
     const directImageUrl = item.image_url || "https://images.unsplash.com/photo-1578632767115-351597cf2477?q=80&w=400";
 
     return {
@@ -73,7 +72,7 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
         }
       },
       genres: formattedGenres,
-      themes: [], // Sesuai data model backend
+      themes: [], 
       recommendation_source: item.recommendation_source || "Hybrid Model",
       match_percentage: item.match_percentage,
       genre_match_score: item.genre_match_score,
@@ -83,17 +82,34 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
 }
 
 // ==============================================================================
-// KODE PENYELAMAT COMPATIBILITY
-// ==============================================================================
-export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anime[]> {
-  return mapBackendToFrontendModel(recommendations);
-}
-
-export async function fetchJikanDetail(item: any): Promise<any> {
-  return item;
-}
+// FUNGSI PENGAMBILAN DATA (FETCHING)
 // ==============================================================================
 
+/**
+ * Fungsi untuk mengambil rekomendasi dari Backend Railway
+ */
+export async function fetchRecommendationsFromBackend(userId: number): Promise<Anime[]> {
+  try {
+    const res = await fetch(`${FASTAPI_URL}/recommend?user_id=${userId}`);
+    
+    if (!res.ok) {
+      throw new Error(`Gagal mengambil data dari Railway: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    // Jika backend mengembalikan object { data: [...] }, gunakan data.data
+    // Jika backend mengembalikan langsung array [...], gunakan data
+    return mapBackendToFrontendModel(data.data || data); 
+    
+  } catch (error) {
+    console.error('Error saat mengambil rekomendasi dari Railway:', error);
+    return [];
+  }
+}
+
+/**
+ * Fungsi untuk mengambil Top Anime dari Jikan API
+ */
 export async function fetchTopAnime(): Promise<Anime[]> {
   try {
     const res = await fetch(`${BASE_URL}/top/anime?limit=20`);
@@ -106,72 +122,11 @@ export async function fetchTopAnime(): Promise<Anime[]> {
   }
 }
 
-export async function searchAnime(query: string): Promise<Anime[]> {
-  try {
-    const res = await fetch(`${BASE_URL}/anime?q=${query}&limit=12`);
-    if (!res.ok) throw new Error('Failed to fetch search result');
-    const data = await res.json();
-    return data.data;
-  } catch (error) {
-    console.error('API Error:', error);
-    return [];
-  }
+export async function enrichAnimeDataBatch(recommendations: any[]): Promise<Anime[]> {
+  return mapBackendToFrontendModel(recommendations);
 }
 
-export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
-  try {
-    const response = await fetch(`${FASTAPI_URL}/recommend?title=${encodeURIComponent(title)}&top_n=20`, {
-      method: "GET",
-      headers: { "Accept": "application/json" }
-    });
-
-    if (!response.ok) throw new Error("Gagal mengambil data dari server rekomendasi.");
-
-    const resultData = await response.json();
-    const recommendationsFromModel = resultData.data || [];
-
-    if (recommendationsFromModel.length === 0) {
-      return await fetchTopAnime();
-    }
-
-    return mapBackendToFrontendModel(recommendationsFromModel);
-
-  } catch (error) {
-    console.error("Error pada Skenario A (By Title):", error);
-    return await fetchTopAnime();
-  }
+export async function fetchJikanDetail(item: any): Promise<any> {
+  return item;
 }
 
-export async function fetchRecommendationsByGenreTheme(genres: string[], themes: string[] = []): Promise<Anime[]> {
-  try {
-    const response = await fetch(`${FASTAPI_URL}/filter`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({ 
-        genres: genres,
-        themes: themes,
-        tags: [],
-        top_n: 20
-      })
-    });
-
-    if (!response.ok) throw new Error("Gagal mengambil data filter dari server rekomendasi.");
-
-    const resultData = await response.json();
-    const recommendationsFromModel = resultData.data || [];
-
-    if (recommendationsFromModel.length === 0) {
-      console.warn("Model mengembalikan hasil kosong. Mengaktifkan Fallback Jikan Top Anime.");
-      return await fetchTopAnime();
-    }
-
-    return mapBackendToFrontendModel(recommendationsFromModel);
-
-  } catch (error) {
-    console.error("Error pada Skenario B (By Genre):", error);
-    return await fetchTopAnime();
-  }
-}
