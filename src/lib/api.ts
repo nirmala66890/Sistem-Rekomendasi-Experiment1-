@@ -127,12 +127,11 @@ export async function fetchRecommendationsByGenreTheme(genres: string, themes: s
 
 /**
  * Fungsi untuk mencari anime berdasarkan Judul (Title)
- * Yang ini yang bikin Netlify error tadi karena belum ada!
+ * SINKRONISASI TOTAL: Mengarah ke /recommend?title= sesuai dengan endpoint asli backend kamu
  */
 export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
   try {
-    // Memanggil endpoint pencarian/rekomendasi judul di backend Railway kamu
-    const url = `${FASTAPI_URL}/search?title=${encodeURIComponent(title)}`;
+    const url = `${FASTAPI_URL}/recommend?title=${encodeURIComponent(title)}`;
     const res = await fetch(url);
     
     if (!res.ok) {
