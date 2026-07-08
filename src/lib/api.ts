@@ -5,7 +5,6 @@
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
 // SINKRONISASI: Mengarah ke Railway Production
-// Pastikan URL ini sesuai dengan URL yang tertera di Dashboard Railway kamu
 const FASTAPI_URL = "https://anime-be1-production.up.railway.app"; 
 
 export interface Anime {
@@ -86,7 +85,7 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
 // ==============================================================================
 
 /**
- * Fungsi untuk mengambil rekomendasi dari Backend Railway
+ * Fungsi untuk mengambil rekomendasi dari Backend Railway (Berdasarkan User ID)
  */
 export async function fetchRecommendationsFromBackend(userId: number): Promise<Anime[]> {
   try {
@@ -122,6 +121,29 @@ export async function fetchRecommendationsByGenreTheme(genres: string, themes: s
     
   } catch (error) {
     console.error('Error saat melakukan filter:', error);
+    return [];
+  }
+}
+
+/**
+ * Fungsi untuk mencari anime berdasarkan Judul (Title)
+ * Yang ini yang bikin Netlify error tadi karena belum ada!
+ */
+export async function fetchRecommendationsByTitle(title: string): Promise<Anime[]> {
+  try {
+    // Memanggil endpoint pencarian/rekomendasi judul di backend Railway kamu
+    const url = `${FASTAPI_URL}/search?title=${encodeURIComponent(title)}`;
+    const res = await fetch(url);
+    
+    if (!res.ok) {
+      throw new Error(`Gagal mengambil data dari judul: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    return mapBackendToFrontendModel(data.data || data); 
+    
+  } catch (error) {
+    console.error('Error saat mencari berdasarkan judul:', error);
     return [];
   }
 }
