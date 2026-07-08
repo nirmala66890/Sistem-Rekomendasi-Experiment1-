@@ -1,11 +1,11 @@
 // ==============================================================================
-// FULL CODE SINKRON: SRC/LIB/API.TS (SISTEM 2 - CLEAN DEPLOYMENT)
+// FULL CODE SINKRON: SRC/LIB/API.TS (SISTEM 2 - CLEAN DEPLOYMENT - RAILWAY READY)
 // ==============================================================================
 
 export const BASE_URL = 'https://api.jikan.moe/v4';
 
-// SINKRONISASI: Mengarah langsung ke Space Hugging Face Experiment 2 yang aktif
-const FASTAPI_URL = "https://jikojeromi77-be-experiment2.hf.space"; 
+// SINKRONISASI: Mengarah ke Railway Production
+const FASTAPI_URL = "https://anime-be1-production.up.railway.app"; 
 
 export interface Anime {
   mal_id: number;
@@ -73,7 +73,7 @@ function mapBackendToFrontendModel(recommendations: any[]): Anime[] {
         }
       },
       genres: formattedGenres,
-      themes: [],
+      themes: [], // Sesuai data model backend
       recommendation_source: item.recommendation_source || "Hybrid Model",
       match_percentage: item.match_percentage,
       genre_match_score: item.genre_match_score,
@@ -175,4 +175,3 @@ export async function fetchRecommendationsByGenreTheme(genres: string[], themes:
     return await fetchTopAnime();
   }
 }
-
